@@ -1,0 +1,27 @@
+{{- define "schema"}}
+{{- $indent := .Indent -}}
+{{if (eq .Schema.Type "object")}}
+{{- range $key, $prop := .Schema.Properties -}}
+{{indent $indent "\n"}}{{$key}}: {{$prop.Type}}
+{{- template "schema" (sumOf $prop (incrBy $indent 4)) -}}
+{{- end -}}
+{{end -}}
+{{end -}}
+{{range $tool := .Tools}}
+# {{$tool.Name}}
+
+{{$tool.Description}}
+
+## Input Schema
+{{with $schema := $tool.InputSchema -}}
+{{template "schema" (sumOf $schema 0)}}
+{{- end}}
+
+## Output Schema
+{{with $schema := $tool.OutputSchema -}}
+{{template "schema" (sumOf $schema 0)}}
+{{- end}}
+
+Score: {{$tool.Score}}
+---
+{{end}}
