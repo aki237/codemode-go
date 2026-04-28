@@ -1,43 +1,26 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"strings"
+
+	_ "embed"
 
 	"github.com/aki237/codemode-go/codemode"
+	"github.com/aki237/codemode-go/swagtools"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type Input struct {
-	Path string `json:"path" jsonschema:"Sub path in httpbin.org to hit."`
-}
+//go:embed open-meteo.yaml
+var openMeteoSpec string
 
-type Output struct {
-	Result any `json:"result" jsonschema:"Data returned from the HTTP request"`
-}
+//go:embed rest-countries.yaml
+var restCountriesSpec string
 
-func CallHTTPBin(ctx context.Context, req *mcp.CallToolRequest, input Input) (
-	*mcp.CallToolResult,
-	Output,
-	error,
-) {
-	resp, err := http.Get("https://httpbin.org/" + strings.TrimLeft(input.Path, "/"))
-	if err != nil {
-		return nil, Output{}, err
-	}
-
-	defer resp.Body.Close()
-
-	var j any
-	err = json.NewDecoder(resp.Body).Decode(&j)
-	if err != nil {
-		return nil, Output{}, err
-	}
-
-	return nil, Output{j}, nil
+func dispatcherFor(baseURL, spec string) (*swagtools.Dispatcher, error) {
+	dispatcher := swagtools.NewDispatcher(baseURL, nil)
+	return dispatcher, dispatcher.LoadSpec(spec)
 }
 
 func main() {
@@ -46,10 +29,37 @@ func main() {
 	conv := codemode.NewConvertor()
 	server := mcp.NewServer(&mcp.Implementation{Name: "greeter", Version: "v1.0.0"}, nil)
 
-	codemode.AddTool(conv, &mcp.Tool{
-		Name:        "call_httpbin",
-		Description: "Call sub paths under httpbin.org (like /ip, /anything etc.,)",
-	}, CallHTTPBin)
+	omd, err := dispatcherFor("https://api.open-meteo.com", openMeteoSpec)
+	if err != nil {
+		panic(err)
+	}
+	rcd, err := dispatcherFor("https://restcountries.com/v3.1", restCountriesSpec)
+	if err != nil {
+		panic(err)
+	}
+
+	for tool, err := range omd.Tools() {
+		if err != nil {
+			fmt.Printf("WARNING: Skipped tool: %w\n", err)
+			continue
+		}
+
+		codemode.AddTool(conv, tool, omd.Handler)
+	}
+
+	for tool, err := range rcd.Tools() {
+		if err != nil {
+			fmt.Printf("WARNING: Skipped tool: %w\n", err)
+			continue
+		}
+
+		codemode.AddTool(conv, tool, rcd.Handler)
+	}
+
+	// codemode.AddTool(conv, &mcp.Tool{
+	// 	Name:        "call_httpbin",
+	// 	Description: "Call sub paths under httpbin.org (like /ip, /anything etc.,)",
+	// }, CallHTTPBin)
 	conv.Register(server)
 
 	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server { return server }, &mcp.StreamableHTTPOptions{})

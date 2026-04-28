@@ -67,7 +67,7 @@ func (c *Convertor) Register(srv *mcp.Server) {
 	mcp.AddTool(srv, &mcp.Tool{
 		Name:  "execute",
 		Title: "execute",
-		Description: `Chain ""call_tool(...)" calls in one Starlark (Python-ish) block; prefer returning the final answer from a single block.
+		Description: `Chain "call_tool(...)" calls in one Starlark (Python-ish) block; prefer returning the final answer from a single block.
 Use "return" to produce output.
 Only "call_tool(tool_name: str, params: dict) -> Any" is available in scope.`,
 		Annotations: &mcp.ToolAnnotations{

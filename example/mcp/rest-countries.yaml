@@ -1,0 +1,295 @@
+openapi: 3.0.0
+info:
+  title: REST Countries API
+  description: Get information about countries via a RESTful API. No authentication required.
+  version: '3.1'
+  contact:
+    name: REST Countries
+    url: https://restcountries.com
+  license:
+    name: Mozilla Public License 2.0
+    url: https://www.mozilla.org/en-US/MPL/2.0/
+servers:
+  - url: https://restcountries.com/v3.1
+paths:
+  /all:
+    get:
+      operationId: getAllCountries
+      summary: Get all countries
+      description: Returns data for all countries. Use the fields parameter to limit response size.
+      parameters:
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include in the response (e.g. name,capital,population).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of all countries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /name/{name}:
+    get:
+      operationId: getCountriesByName
+      summary: Search countries by name
+      description: Search by country name (common or official). Use fullText=true for exact match.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Country name to search for.
+          schema:
+            type: string
+        - name: fullText
+          in: query
+          description: If true, perform an exact full-name match.
+          schema:
+            type: boolean
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching countries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /alpha/{code}:
+    get:
+      operationId: getCountryByCode
+      summary: Get country by code
+      description: Search by ISO 3166-1 alpha-2, alpha-3, or numeric country code.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Country code (cca2, cca3, ccn3, or cioc).
+          schema:
+            type: string
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching country.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /alpha:
+    get:
+      operationId: getCountriesByCodes
+      summary: Get countries by multiple codes
+      description: Search by a comma-separated list of country codes.
+      parameters:
+        - name: codes
+          in: query
+          required: true
+          description: Comma-separated list of country codes (cca2, cca3, ccn3, or cioc).
+          schema:
+            type: string
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching countries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /currency/{currency}:
+    get:
+      operationId: getCountriesByCurrency
+      summary: Get countries by currency
+      description: Search countries that use a given currency code or name.
+      parameters:
+        - name: currency
+          in: path
+          required: true
+          description: Currency code (e.g. USD) or name (e.g. dollar).
+          schema:
+            type: string
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Countries using the specified currency.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /lang/{language}:
+    get:
+      operationId: getCountriesByLanguage
+      summary: Get countries by language
+      description: Search countries that speak a given language.
+      parameters:
+        - name: language
+          in: path
+          required: true
+          description: Language name or ISO 639-1 code (e.g. spanish, es).
+          schema:
+            type: string
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Countries speaking the specified language.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /capital/{capital}:
+    get:
+      operationId: getCountriesByCapital
+      summary: Get countries by capital city
+      description: Search countries by their capital city name.
+      parameters:
+        - name: capital
+          in: path
+          required: true
+          description: Capital city name (e.g. London).
+          schema:
+            type: string
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Countries with the specified capital.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /region/{region}:
+    get:
+      operationId: getCountriesByRegion
+      summary: Get countries by region
+      description: Filter countries by world region.
+      parameters:
+        - name: region
+          in: path
+          required: true
+          description: Region name (Africa, Americas, Asia, Europe, Oceania).
+          schema:
+            type: string
+            enum:
+              - Africa
+              - Americas
+              - Asia
+              - Europe
+              - Oceania
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Countries in the specified region.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /subregion/{subregion}:
+    get:
+      operationId: getCountriesBySubregion
+      summary: Get countries by subregion
+      description: Filter countries by subregion (e.g. Western Europe, South America).
+      parameters:
+        - name: subregion
+          in: path
+          required: true
+          description: Subregion name (e.g. Western Europe).
+          schema:
+            type: string
+        - name: fields
+          in: query
+          description: Comma-separated list of fields to include.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Countries in the specified subregion.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  responses:
+    NotFound:
+      description: No matching countries found.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+                example: 404
+              message:
+                type: string
+                example: "Not Found"

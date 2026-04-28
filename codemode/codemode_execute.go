@@ -56,7 +56,20 @@ func (c *Convertor) callTool(
 		return nil, fmt.Errorf("tool '%s' not found", toolName)
 	}
 
-	_, out, err := tool.call(tctx.ctx, tctx.callRequest, inputJSON)
+	argsJSONRaw, err := json.Marshal(inputJSON)
+	if err != nil {
+		return nil, fmt.Errorf("unable to marshal arguments into json: %w", err)
+	}
+
+	_, out, err := tool.call(tctx.ctx, &mcp.CallToolRequest{
+		Session: tctx.callRequest.Session,
+		Params: &mcp.CallToolParamsRaw{
+			Meta:      tctx.callRequest.Params.Meta,
+			Name:      toolName,
+			Arguments: json.RawMessage(argsJSONRaw),
+		},
+		Extra: tctx.callRequest.GetExtra(),
+	}, inputJSON)
 	if err != nil {
 		return nil, err
 	}
