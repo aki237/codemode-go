@@ -60,7 +60,10 @@ func (d *Dispatcher) LoadSpec(specData string) error {
 
 	d.doc = doc
 
-	if err := d.doc.Validate(context.Background(), openapi3.DisableExamplesValidation()); err != nil {
+	if err := d.doc.Validate(
+		context.Background(),
+		openapi3.DisableExamplesValidation(),
+	); err != nil {
 		return err
 	}
 
@@ -329,15 +332,13 @@ func buildInputSchema(params openapi3.Parameters, requestBody *openapi3.RequestB
 		if p.Schema == nil || p.Schema.Value == nil {
 			propSchema = json.RawMessage(`{}`)
 		} else {
-			b, err := p.Schema.Value.MarshalJSON()
+			m := derefSchema(p.Schema)
+			if p.Description != "" {
+				m["description"] = p.Description
+			}
+			b, err := json.Marshal(m)
 			if err != nil {
 				return nil, fmt.Errorf("param %s: %w", p.Name, err)
-			}
-			if p.Description != "" {
-				b, err = injectDescription(b, p.Description)
-				if err != nil {
-					return nil, fmt.Errorf("param %s description: %w", p.Name, err)
-				}
 			}
 			propSchema = b
 		}
@@ -360,7 +361,7 @@ func buildInputSchema(params openapi3.Parameters, requestBody *openapi3.RequestB
 				if propRef.Value == nil {
 					properties[propName] = json.RawMessage(`{}`)
 				} else {
-					b, err := propRef.Value.MarshalJSON()
+					b, err := json.Marshal(derefSchema(propRef))
 					if err != nil {
 						return nil, fmt.Errorf("body property %s: %w", propName, err)
 					}
@@ -384,12 +385,90 @@ func buildInputSchema(params openapi3.Parameters, requestBody *openapi3.RequestB
 	return json.Marshal(schema)
 }
 
-// injectDescription merges a description string into an already-marshaled JSON schema object.
-func injectDescription(schemaJSON []byte, desc string) (json.RawMessage, error) {
-	var m map[string]any
-	if err := json.Unmarshal(schemaJSON, &m); err != nil {
-		return nil, err
+// derefSchema converts an OpenAPI SchemaRef into a plain map[string]any JSON schema,
+// always following .Value instead of emitting $ref, so callers get a fully inlined schema.
+func derefSchema(ref *openapi3.SchemaRef) map[string]any {
+	if ref == nil || ref.Value == nil {
+		return map[string]any{}
 	}
-	m["description"] = desc
-	return json.Marshal(m)
+	s := ref.Value
+	m := map[string]any{}
+
+	if s.Description != "" {
+		m["description"] = s.Description
+	}
+	if len(s.Type.Slice()) == 1 {
+		m["type"] = s.Type.Slice()[0]
+	} else if len(s.Type.Slice()) > 1 {
+		m["type"] = s.Type.Slice()
+	}
+	if s.Format != "" {
+		m["format"] = s.Format
+	}
+	if len(s.Enum) > 0 {
+		m["enum"] = s.Enum
+	}
+	if s.Default != nil {
+		m["default"] = s.Default
+	}
+	if s.Example != nil {
+		m["example"] = s.Example
+	}
+	if s.Min != nil {
+		m["minimum"] = *s.Min
+	}
+	if s.Max != nil {
+		m["maximum"] = *s.Max
+	}
+	if s.MinLength > 0 {
+		m["minLength"] = s.MinLength
+	}
+	if s.MaxLength != nil {
+		m["maxLength"] = *s.MaxLength
+	}
+	if s.Pattern != "" {
+		m["pattern"] = s.Pattern
+	}
+	if s.Nullable {
+		m["nullable"] = true
+	}
+
+	if s.Items != nil {
+		m["items"] = derefSchema(s.Items)
+	}
+
+	if len(s.Properties) > 0 {
+		props := make(map[string]any, len(s.Properties))
+		for k, v := range s.Properties {
+			props[k] = derefSchema(v)
+		}
+		m["properties"] = props
+	}
+	if len(s.Required) > 0 {
+		m["required"] = s.Required
+	}
+
+	if len(s.AllOf) > 0 {
+		sub := make([]any, len(s.AllOf))
+		for i, v := range s.AllOf {
+			sub[i] = derefSchema(v)
+		}
+		m["allOf"] = sub
+	}
+	if len(s.AnyOf) > 0 {
+		sub := make([]any, len(s.AnyOf))
+		for i, v := range s.AnyOf {
+			sub[i] = derefSchema(v)
+		}
+		m["anyOf"] = sub
+	}
+	if len(s.OneOf) > 0 {
+		sub := make([]any, len(s.OneOf))
+		for i, v := range s.OneOf {
+			sub[i] = derefSchema(v)
+		}
+		m["oneOf"] = sub
+	}
+
+	return m
 }
