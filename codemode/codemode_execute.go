@@ -120,8 +120,6 @@ func (c *Convertor) ExecuteTool(ctx context.Context, req *mcp.CallToolRequest, i
 	outputVar := fmt.Sprintf("output_%d", rand.Uint64())
 	script := makeScript(input.Code, outputVar)
 
-	fmt.Printf("Executing script\n=====================\n%s\n", script)
-
 	// 2. Set up the execution environment (Globals)
 	predeclared := starlark.StringDict{
 		"call_tool": starlark.NewBuiltin("call_tool", c.callTool),

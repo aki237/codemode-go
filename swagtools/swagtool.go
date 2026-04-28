@@ -208,8 +208,6 @@ func buildRequest(ctx context.Context, baseURL string, info opInfo, args map[str
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
-	fmt.Println("Calling URL: ", rawURL)
-
 	httpReq, err := http.NewRequestWithContext(ctx, strings.ToUpper(info.method), rawURL, bodyReader)
 	if err != nil {
 		return nil, err
